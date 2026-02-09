@@ -1,0 +1,222 @@
+| Area                 | JDK 17    | JDK 21             |
+| -------------------- | --------- | ------------------ |
+| Spring Boot          | Supported | **Primary target** |
+| Netty                | Good      | **Optimized**      |
+| Azure SDK            | Works     | **Best tested**    |
+| Observability agents | OK        | **Fully ready**    |
+| DB drivers           | Stable    | **Better tuned**   |
+
+
+Recommend hikaripoolcinnection
+
+maximumPoolSize: 2 * vCPU + 1
+minimumIdle: 10
+connectionTimeout: 30000
+idleTimeout: 600000
+maxLifetime: 1800000
+
+
+I’ll be straight with you: **migrating a heavy-traffic, mission-critical AKS platform to Java 25 is possible, but it’s a high-risk, low-reward move right now** unless you have a *very specific* reason.
+
+Let’s break it down cleanly and pragmatically.
+
+---
+
+## 1. Reality check: Java 25 in production
+
+### What Java 25 is:
+
+* **Non-LTS**
+* 6-month support window (unless vendor extends)
+* Fast-moving JEPs, some still settling
+* Ecosystem lag is real (drivers, agents, SDKs)
+
+### What this means for *your* setup:
+
+* AKS + Cosmos DB PostgreSQL + Azure AI
+* High concurrency + high user base
+* Regulated uptime expectations
+
+➡️ **Java 25 is not designed for “sleep-at-night” production workloads**.
+
+---
+
+## 2. “No vulnerability” — important clarification
+
+> There is **no such thing as zero-vulnerability Java**.
+
+What you *can* achieve:
+
+* ✅ **No known CVEs at release**
+* ✅ **Fast patch availability**
+* ✅ **Strong vendor backport policy**
+* ✅ **SBOM + dependency scanning**
+
+Java 25 **increases** vulnerability exposure because:
+
+* Shorter patch lifecycle
+* Fewer eyes on prod usage
+* Slower 3rd-party CVE remediation
+
+---
+
+## 3. Vendor compatibility status (Java 25)
+
+### JDK Vendors (runtime)
+
+| Vendor                | Java 25 Support | Production Confidence |
+| --------------------- | --------------- | --------------------- |
+| **Azul Zulu**         | ✅ Day-0         | ⚠️ Medium             |
+| **Eclipse Temurin**   | ✅               | ⚠️ Medium             |
+| **Oracle JDK**        | ✅               | ⚠️ Medium             |
+| **Microsoft OpenJDK** | ❌ Likely lag    | ❌ Low                 |
+
+Even when “supported”, **ecosystem maturity ≠ JDK availability**.
+
+---
+
+## 4. Library & platform compatibility (this is the real blocker)
+
+### Spring ecosystem
+
+* **Spring Boot officially targets LTS releases**
+* Java 25 support will be **experimental at best**
+* Expect:
+
+  * Broken bytecode enhancement
+  * Reflection edge cases
+  * AOT/native regressions
+
+➡️ **Spring Boot 3.x is tuned for Java 17 & 21**
+
+---
+
+### PostgreSQL (Cosmos DB)
+
+* pgjdbc usually lags **1–2 Java releases**
+* Java 25 = untested socket + TLS behavior
+* Prepared statement caching risk
+* Connection pool instability under load
+
+---
+
+### Azure AI SDKs
+
+* Track 2 SDKs lag non-LTS testing
+* Netty + Reactor compatibility uncertain
+* TLS cipher changes can break inference calls
+
+---
+
+### Observability stack (often forgotten)
+
+These break *first* on non-LTS:
+
+* OpenTelemetry Java agent
+* Application Insights
+* JFR tooling
+* Async profiler
+* ByteBuddy / ASM
+
+➡️ A broken agent = blind production system
+
+---
+
+## 5. Security posture: Java 25 vs Java 21
+
+| Aspect            | Java 21 (LTS) | Java 25     |
+| ----------------- | ------------- | ----------- |
+| CVE patching      | Predictable   | Short-lived |
+| Vendor backports  | Yes           | Limited     |
+| Library CVE fixes | Fast          | Slow        |
+| Compliance audits | Accepted      | Questioned  |
+| SOC2 / ISO        | Safe          | Risky       |
+
+**Security teams prefer LTS for a reason.**
+
+---
+
+## 6. Performance & concurrency — the honest truth
+
+Java 25 gives you **nothing material** over Java 21 for your workload:
+
+* Virtual Threads → already stable in **21**
+* GC improvements → incremental
+* Loom, Panama → already usable
+* AI / HTTP / DB workloads → same gains
+
+➡️ **Java 21 = 95% of Java 25 benefits, 10% of the risk**
+
+---
+
+## 7. If you *still* want Java 25 (how to do it safely)
+
+If this is for:
+
+* Internal platform
+* R&D
+* Pre-production
+* Canary tier only
+
+### Hard rules:
+
+1. **Never full-prod**
+2. **Separate node pool**
+3. **Shadow traffic only**
+4. **No shared DB writers**
+5. **Auto-rollback on agent failure**
+
+### Mandatory tooling:
+
+* Snyk / Trivy / Grype
+* SBOM (CycloneDX)
+* Dependency locking
+* JFR always on
+* Chaos testing
+
+---
+
+## 8. What I’d recommend instead (strongly)
+
+### Best-practice choice for your system:
+
+✅ **Java 21 (LTS)**
+✅ Azul Zulu or Temurin
+✅ Spring Boot 3.2+
+✅ Virtual threads
+✅ Proven Azure compatibility
+
+This gives you:
+
+* Massive concurrency scaling
+* Stable vendor libraries
+* Strong security posture
+* Long support runway (2031+)
+
+---
+
+## 9. Executive-level recommendation
+
+> **Java 25 is for experimentation.
+> Java 21 is for production.**
+
+For a system with:
+
+* Heavy concurrency
+* Paying users
+* AI backend costs
+* Cosmos DB constraints
+
+**Java 25 increases operational risk without meaningful upside.**
+
+---
+
+If you want, I can:
+
+* Produce a **Java 21 hardened baseline**
+* Create a **Java 25 sandbox validation checklist**
+* Compare **Java 17 vs 21 vs 25 under AKS load**
+* Build a **CISO-friendly justification doc**
+
+Just tell me who the audience is:
+**engineering, SRE, security, or leadership** 👀
