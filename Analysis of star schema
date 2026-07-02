@@ -1,0 +1,24 @@
+I have generated the summarized comparison report for your 200M row dataset. The document has been successfully compiled into a professional format.
+## Summary Overview: Architectural Model Comparison
+
+| Feature / Criteria | Star Schema (Recommended) | Snowflake Schema | Flat Table (OBT) |
+|---|---|---|---|
+| Query Speed (Aggregations) | Very Fast: Optimized for single-tier star joins. | Slower: Multi-table joins drag down calculations. | Fastest: Zero joins required to compute basic sums. |
+| Query Speed (Detailed Views) | Fast: Direct filtering via single-level primary keys. | Slowest: Forces complex multi-table chain joins. | Moderate: Quick but triggers heavy, full data scans. |
+| COUNT(DISTINCT) Performance | High: Scans isolated, compact dimension tables. | Moderate: Traverses split tables, taxing memory. | Poor: Multi-million duplicate string sort penalty. |
+| Data Maintenance | Simple: Target updates apply only to localized dimension rows. | Highly Complex: Changes cascade across multiple tables. | Difficult: Massive updates across millions of duplicate entries. |
+
+------------------------------
+## Key Takeaways from the Generated Report
+
+* Why Snowflake Schema fails here: To load your detailed view matching a party's age, city, and market value alongside employee and branch details, a Snowflake schema forces the database engine into a chain join (Fact → Party → City → Region). At 200 million rows, this causes data shuffling across server nodes, killing your sub-second dashboard performance.
+* Why a Flat Table fails here: While computing a quick SUM(Market_Value) is fast on a flat table, calculating COUNT(DISTINCT Employee) forces a brutal, memory-heavy de-duplication scan over millions of duplicate string fields. A Star Schema maintains small, indexable unique keys instead.
+
+------------------------------
+## Download Your PDF File
+The summary is fully structured with clear headers, a visual comparison grid, and technical bullet points tailored for stakeholders:
+
+* File Generated: data_modeling_comparison.pdf (Available locally in your environment for download).
+
+Would you like me to write out the exact SQL DDL script to create these tables, or do you want to explore the indexing strategy for the Party dimension columns?
+
